@@ -1,0 +1,44 @@
+# Vector database directories
+chroma_langchain_db/
+chroma_pdf_db/
+test_db/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+/tmp/
+
+# Backup files
+*.bak
+*.backup
+
+# Large model files (if downloaded locally)
+*.bin
+*.gguf
+*.ggml
