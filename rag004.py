@@ -6,6 +6,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains import create_retrieval_chain
 import pandas as pd
+import os
 
 df = pd.read_csv("local_data.csv")
 
@@ -13,18 +14,10 @@ embeddings = OllamaEmbeddings(model="embeddinggemma:300m")
 
 db_location = "./chroma_langchain_db"
 
-# Always add documents, even if directory exists
-documents = []
-ids = []
-
-for i, row in df.iterrows():
-    document = Document(
-        page_content=row["Type"] + " " + str(row["Assigned To"]) + " " + row["Title"],
-        metadata={"assigned_to": row["Assigned To"], "type": row["Type"]},
-        id=str(i)
-    )
-    ids.append(str(i))
-    documents.append(document)
+# Check if Chroma DB exists (by checking for index files)
+db_exists = os.path.exists(db_location) and any(
+    fname.endswith(".bin") or fname.endswith(".pkl") for fname in os.listdir(db_location)
+)
 
 vector_store = Chroma(
     collection_name="local_data",
@@ -32,8 +25,18 @@ vector_store = Chroma(
     embedding_function=embeddings
 )
 
-# Add or update documents regardless of directory existence
-vector_store.add_documents(documents=documents, ids=ids)
+if not db_exists:
+    documents = []
+    ids = []
+    for i, row in df.iterrows():
+        document = Document(
+            page_content=row["Type"] + " " + str(row["Assigned To"]) + " " + row["Title"],
+            metadata={"assigned_to": row["Assigned To"], "type": row["Type"]},
+            id=str(i)
+        )
+        ids.append(str(i))
+        documents.append(document)
+    vector_store.add_documents(documents=documents, ids=ids)
 
 retriever = vector_store.as_retriever(
     search_kwargs={"k": 5}
