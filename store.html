@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ollama Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+            background: #343541;
+            color: #ececf1;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #202123;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #4d4d4f;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .message {
+            display: flex;
+            gap: 1rem;
+            padding: 1.5rem;
+            border-radius: 8px;
+        }
+
+        .message.user {
+            background: #343541;
+        }
+
+        .message.assistant {
+            background: #444654;
+        }
+
+        .message-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-icon {
+            background: #5436da;
+        }
+
+        .message.assistant .message-icon {
+            background: #19c37d;
+        }
+
+        .message-content {
+            flex: 1;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .thinking {
+            background: #2d2e3a;
+            border-left: 3px solid #8e8ea0;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            border-radius: 4px;
+            font-style: italic;
+            color: #b4b4b4;
+        }
+
+        .thinking-label {
+            font-weight: 600;
+            color: #8e8ea0;
+            margin-bottom: 0.5rem;
+        }
+
+        .answer-label {
+            font-weight: 600;
+            color: #19c37d;
+            margin-bottom: 0.5rem;
+        }
+
+        .input-container {
+            padding: 1.5rem 2rem;
+            background: #343541;
+            border-top: 1px solid #4d4d4f;
+        }
+
+        .input-wrapper {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        #messageInput {
+            width: 100%;
+            padding: 1rem 3.5rem 1rem 1rem;
+            background: #40414f;
+            border: 1px solid #565869;
+            border-radius: 8px;
+            color: #ececf1;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: none;
+            outline: none;
+            min-height: 50px;
+            max-height: 200px;
+        }
+
+        #messageInput:focus {
+            border-color: #8e8ea0;
+        }
+
+        #sendButton {
+            position: absolute;
+            right: 0.5rem;
+            bottom: 0.75rem;
+            background: #19c37d;
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        #sendButton:hover:not(:disabled) {
+            background: #1a9d6a;
+        }
+
+        #sendButton:disabled {
+            background: #565869;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ececf1;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #343541;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #565869;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6e6e80;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Ollama Chat</h1>
+    </div>
+
+    <div class="chat-container" id="chatContainer">
+        <div class="message assistant">
+            <div class="message-icon">AI</div>
+            <div class="message-content">Hello! I'm your AI assistant powered by Ollama. How can I help you today?</div>
+        </div>
+    </div>
+
+    <div class="input-container">
+        <div class="input-wrapper">
+            <textarea id="messageInput" placeholder="Send a message..." rows="1"></textarea>
+            <button id="sendButton">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M7 11L12 6L17 11M12 18V7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "whatwg-fetch": "https://cdn.jsdelivr.net/npm/whatwg-fetch@3.6.20/+esm",
+            "ollama": "/node_modules/ollama/dist/browser.mjs"
+        }
+    }
+    </script>
+    <script type="module">
+        import ollama from 'ollama';
+
+        const chatContainer = document.getElementById('chatContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+
+        const conversationHistory = [];
+
+        // Browser storage tools
+        const tools = [
+            {
+                type: "function",
+                function: {
+                    name: "get_local_storage",
+                    description: "Get a value from localStorage by key",
+                    parameters: {
+                        type: "object",
+                        required: ["key"],
+                        properties: {
+                            key: { type: "string", description: "The localStorage key to retrieve" }
+                        }
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "set_local_storage",
+                    description: "Set a value in localStorage",
+                    parameters: {
+                        type: "object",
+                        required: ["key", "value"],
+                        properties: {
+                            key: { type: "string", description: "The localStorage key" },
+                            value: { type: "string", description: "The value to store" }
+                        }
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "remove_local_storage",
+                    description: "Remove a key from localStorage",
+                    parameters: {
+                        type: "object",
+                        required: ["key"],
+                        properties: {
+                            key: { type: "string", description: "The localStorage key to remove" }
+                        }
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "list_local_storage",
+                    description: "List all keys and values in localStorage",
+                    parameters: {
+                        type: "object",
+                        properties: {}
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "get_session_storage",
+                    description: "Get a value from sessionStorage by key",
+                    parameters: {
+                        type: "object",
+                        required: ["key"],
+                        properties: {
+                            key: { type: "string", description: "The sessionStorage key to retrieve" }
+                        }
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "set_session_storage",
+                    description: "Set a value in sessionStorage",
+                    parameters: {
+                        type: "object",
+                        required: ["key", "value"],
+                        properties: {
+                            key: { type: "string", description: "The sessionStorage key" },
+                            value: { type: "string", description: "The value to store" }
+                        }
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "list_session_storage",
+                    description: "List all keys and values in sessionStorage",
+                    parameters: {
+                        type: "object",
+                        properties: {}
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "get_cookies",
+                    description: "Get all cookies for the current domain",
+                    parameters: {
+                        type: "object",
+                        properties: {}
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "set_cookie",
+                    description: "Set a cookie",
+                    parameters: {
+                        type: "object",
+                        required: ["name", "value"],
+                        properties: {
+                            name: { type: "string", description: "Cookie name" },
+                            value: { type: "string", description: "Cookie value" },
+                            days: { type: "number", description: "Days until expiration (optional)" }
+                        }
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "clear_storage",
+                    description: "Clear all storage (localStorage, sessionStorage, and cookies)",
+                    parameters: {
+                        type: "object",
+                        properties: {}
+                    }
+                }
+            }
+        ];
+
+        // Tool execution functions
+        function executeToolCall(toolCall) {
+            const functionName = toolCall.function.name;
+            const args = toolCall.function.arguments;
+
+            switch(functionName) {
+                case 'get_local_storage':
+                    return localStorage.getItem(args.key);
+
+                case 'set_local_storage':
+                    localStorage.setItem(args.key, args.value);
+                    return `Successfully set ${args.key} in localStorage`;
+
+                case 'remove_local_storage':
+                    localStorage.removeItem(args.key);
+                    return `Successfully removed ${args.key} from localStorage`;
+
+                case 'list_local_storage':
+                    const localItems = {};
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        localItems[key] = localStorage.getItem(key);
+                    }
+                    return JSON.stringify(localItems, null, 2);
+
+                case 'get_session_storage':
+                    return sessionStorage.getItem(args.key);
+
+                case 'set_session_storage':
+                    sessionStorage.setItem(args.key, args.value);
+                    return `Successfully set ${args.key} in sessionStorage`;
+
+                case 'list_session_storage':
+                    const sessionItems = {};
+                    for (let i = 0; i < sessionStorage.length; i++) {
+                        const key = sessionStorage.key(i);
+                        sessionItems[key] = sessionStorage.getItem(key);
+                    }
+                    return JSON.stringify(sessionItems, null, 2);
+
+                case 'get_cookies':
+                    const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+                        const [name, value] = cookie.trim().split('=');
+                        if (name) acc[name] = decodeURIComponent(value);
+                        return acc;
+                    }, {});
+                    return JSON.stringify(cookies, null, 2);
+
+                case 'set_cookie':
+                    let cookieString = `${args.name}=${encodeURIComponent(args.value)}`;
+                    if (args.days) {
+                        const date = new Date();
+                        date.setTime(date.getTime() + (args.days * 24 * 60 * 60 * 1000));
+                        cookieString += `; expires=${date.toUTCString()}`;
+                    }
+                    cookieString += '; path=/';
+                    document.cookie = cookieString;
+                    return `Successfully set cookie ${args.name}`;
+
+                case 'clear_storage':
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    document.cookie.split(';').forEach(cookie => {
+                        const name = cookie.split('=')[0].trim();
+                        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+                    });
+                    return 'Successfully cleared all storage';
+
+                default:
+                    return `Unknown function: ${functionName}`;
+            }
+        }
+
+        // Auto-resize textarea
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+        });
+
+        // Send message on Enter (Shift+Enter for new line)
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        sendButton.addEventListener('click', sendMessage);
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Add user message
+            addMessage(message, 'user');
+            conversationHistory.push({ role: 'user', content: message });
+
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+            sendButton.disabled = true;
+
+            // Add loading message
+            const loadingDiv = addMessage('', 'assistant', true);
+
+            try {
+                const stream = await ollama.chat({
+                    model: 'gemma4:e4b',
+                    messages: conversationHistory,
+                    tools: tools,
+                    stream: true,
+                });
+
+                let inThinking = false;
+                let content = '';
+                let thinking = '';
+
+                // Remove loading indicator
+                loadingDiv.remove();
+                const assistantDiv = addMessage('', 'assistant');
+                const contentDiv = assistantDiv.querySelector('.message-content');
+
+                let toolCalls = [];
+
+                for await (const chunk of stream) {
+                    if (chunk.message.thinking) {
+                        if (!inThinking) {
+                            inThinking = true;
+                            // Add thinking section
+                            const thinkingDiv = document.createElement('div');
+                            thinkingDiv.className = 'thinking';
+                            const thinkingLabel = document.createElement('div');
+                            thinkingLabel.className = 'thinking-label';
+                            thinkingLabel.textContent = '💭 Thinking:';
+                            thinkingDiv.appendChild(thinkingLabel);
+                            const thinkingContent = document.createElement('div');
+                            thinkingContent.id = 'thinking-content';
+                            thinkingDiv.appendChild(thinkingContent);
+                            contentDiv.appendChild(thinkingDiv);
+                        }
+                        // Accumulate and display thinking
+                        thinking += chunk.message.thinking;
+                        const thinkingContent = document.getElementById('thinking-content');
+                        if (thinkingContent) {
+                            thinkingContent.textContent = thinking;
+                        }
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                    } else if (chunk.message.content) {
+                        if (inThinking) {
+                            inThinking = false;
+                            // Add answer label
+                            const answerLabel = document.createElement('div');
+                            answerLabel.className = 'answer-label';
+                            answerLabel.textContent = '💬 Answer:';
+                            contentDiv.appendChild(answerLabel);
+
+                            // Add answer content container
+                            const answerContent = document.createElement('div');
+                            answerContent.id = 'answer-content';
+                            contentDiv.appendChild(answerContent);
+                        }
+                        // Accumulate and display content
+                        content += chunk.message.content;
+                        const answerContent = document.getElementById('answer-content');
+                        if (answerContent) {
+                            answerContent.textContent = content;
+                        } else {
+                            // If no thinking, just show content directly
+                            contentDiv.textContent = content;
+                        }
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                    } else if (chunk.message.tool_calls) {
+                        toolCalls = chunk.message.tool_calls;
+                    }
+                }
+
+                // Handle tool calls if any
+                if (toolCalls && toolCalls.length > 0) {
+                    // Add assistant message with tool calls to history
+                    conversationHistory.push({
+                        role: 'assistant',
+                        thinking: thinking,
+                        content: content,
+                        tool_calls: toolCalls
+                    });
+
+                    // Show tool execution
+                    const toolDiv = document.createElement('div');
+                    toolDiv.className = 'thinking';
+                    toolDiv.innerHTML = '<div class="thinking-label">🔧 Executing tools...</div>';
+                    contentDiv.appendChild(toolDiv);
+
+                    // Execute all tool calls
+                    for (const toolCall of toolCalls) {
+                        const result = executeToolCall(toolCall);
+
+                        // Add tool result to conversation
+                        conversationHistory.push({
+                            role: 'tool',
+                            content: result
+                        });
+
+                        // Display tool result
+                        const toolResultDiv = document.createElement('div');
+                        toolResultDiv.style.marginTop = '0.5rem';
+                        toolResultDiv.innerHTML = `<strong>${toolCall.function.name}:</strong> ${result}`;
+                        toolDiv.appendChild(toolResultDiv);
+                    }
+
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+
+                    // Get final response after tool execution
+                    const finalStream = await ollama.chat({
+                        model: 'gemma4:e4b',
+                        messages: conversationHistory,
+                        tools: tools,
+                        stream: true,
+                    });
+
+                    let finalContent = '';
+                    const finalDiv = addMessage('', 'assistant');
+                    const finalContentDiv = finalDiv.querySelector('.message-content');
+
+                    for await (const chunk of finalStream) {
+                        if (chunk.message.content) {
+                            finalContent += chunk.message.content;
+                            finalContentDiv.textContent = finalContent;
+                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                        }
+                    }
+
+                    conversationHistory.push({
+                        role: 'assistant',
+                        content: finalContent
+                    });
+                } else {
+                    // No tool calls, just add the normal message
+                    conversationHistory.push({
+                        role: 'assistant',
+                        thinking: thinking,
+                        content: content
+                    });
+                }
+
+            } catch (error) {
+                loadingDiv.remove();
+                addMessage('Error: ' + error.message + '\nMake sure Ollama is running on http://localhost:11434', 'assistant');
+                console.error('Error:', error);
+            }
+
+            sendButton.disabled = false;
+            messageInput.focus();
+        }
+
+        function addMessage(content, role, isLoading = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+
+            const iconDiv = document.createElement('div');
+            iconDiv.className = 'message-icon';
+            iconDiv.textContent = role === 'user' ? 'U' : 'AI';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+
+            if (isLoading) {
+                contentDiv.innerHTML = '<span class="loading"></span>';
+            } else {
+                contentDiv.textContent = content;
+            }
+
+            messageDiv.appendChild(iconDiv);
+            messageDiv.appendChild(contentDiv);
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            return messageDiv;
+        }
+    </script>
+</body>
+</html>
