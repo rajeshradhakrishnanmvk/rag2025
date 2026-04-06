@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Syn</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+            background: #343541;
+            color: #ececf1;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #202123;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #4d4d4f;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-content {
+            text-align: center;
+            flex: 1;
+        }
+
+        .header h1 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .header-subtitle {
+            font-size: 0.85rem;
+            color: #8e8ea0;
+        }
+
+        .app-store-btn {
+            background: #5436da;
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background 0.2s;
+        }
+
+        .app-store-btn:hover {
+            background: #6b4ef7;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .message {
+            display: flex;
+            gap: 1rem;
+            padding: 1.5rem;
+            border-radius: 8px;
+        }
+
+        .message.user {
+            background: #343541;
+        }
+
+        .message.assistant {
+            background: #444654;
+        }
+
+        .message-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-icon {
+            background: #5436da;
+        }
+
+        .message.assistant .message-icon {
+            background: #19c37d;
+        }
+
+        .message-content {
+            flex: 1;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .thinking {
+            background: #2d2e3a;
+            border-left: 3px solid #8e8ea0;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            border-radius: 4px;
+            font-style: italic;
+            color: #b4b4b4;
+        }
+
+        .thinking-label {
+            font-weight: 600;
+            color: #8e8ea0;
+            margin-bottom: 0.5rem;
+        }
+
+        .answer-label {
+            font-weight: 600;
+            color: #19c37d;
+            margin-bottom: 0.5rem;
+        }
+
+        /* App Store Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #343541;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            background: #202123;
+            padding: 1.5rem;
+            border-bottom: 1px solid #4d4d4f;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #ececf1;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .close-btn:hover {
+            background: #40414f;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .app-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .app-card {
+            background: #40414f;
+            border: 1px solid #565869;
+            border-radius: 8px;
+            padding: 1.25rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .app-card:hover {
+            border-color: #8e8ea0;
+            transform: translateY(-2px);
+        }
+
+        .app-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: #ececf1;
+        }
+
+        .app-card p {
+            font-size: 0.9rem;
+            color: #b4b4b4;
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+
+        .app-card-footer {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: space-between;
+        }
+
+        .app-btn {
+            flex: 1;
+            padding: 0.5rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .launch-btn {
+            background: #19c37d;
+            color: white;
+        }
+
+        .launch-btn:hover {
+            background: #1a9d6a;
+        }
+
+        .delete-btn {
+            background: #d9534f;
+            color: white;
+        }
+
+        .delete-btn:hover {
+            background: #c9302c;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #8e8ea0;
+        }
+
+        .empty-state h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .synthesis-progress {
+            background: #2d2e3a;
+            border-left: 3px solid #5436da;
+            padding: 1rem;
+            margin-top: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .synthesis-progress .status {
+            color: #b4b4b4;
+            margin-bottom: 0.5rem;
+        }
+
+        .synthesis-progress .spinner {
+            display: inline-block;
+            margin-right: 0.5rem;
+            animation: spin 1s linear infinite;
+        }
+
+        .progress-steps {
+            margin-top: 0.75rem;
+        }
+
+        .progress-step {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+            color: #8e8ea0;
+        }
+
+        .progress-step.active {
+            color: #19c37d;
+        }
+
+        .progress-step.complete {
+            color: #5cb85c;
+        }
+
+        .progress-step .step-icon {
+            width: 20px;
+            text-align: center;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .input-container {
+            padding: 1.5rem 2rem;
+            background: #343541;
+            border-top: 1px solid #4d4d4f;
+        }
+
+        .input-wrapper {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        #messageInput {
+            width: 100%;
+            padding: 1rem 3.5rem 1rem 1rem;
+            background: #40414f;
+            border: 1px solid #565869;
+            border-radius: 8px;
+            color: #ececf1;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: none;
+            outline: none;
+            min-height: 50px;
+            max-height: 200px;
+        }
+
+        #messageInput:focus {
+            border-color: #8e8ea0;
+        }
+
+        #sendButton {
+            position: absolute;
+            right: 0.5rem;
+            bottom: 0.75rem;
+            background: #19c37d;
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        #sendButton:hover:not(:disabled) {
+            background: #1a9d6a;
+        }
+
+        #sendButton:disabled {
+            background: #565869;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ececf1;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #343541;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #565869;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6e6e80;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div></div>
+        <div class="header-content">
+            <h1>App Synthesis Engine</h1>
+            <div class="header-subtitle" id="header-subtitle">0 apps generated</div>
+        </div>
+        <button class="app-store-btn" id="appStoreBtn">
+            <span>📦</span>
+            <span>App Store</span>
+        </button>
+    </div>
+
+    <div class="chat-container" id="chatContainer">
+        <div class="message assistant">
+            <div class="message-icon">AI</div>
+            <div class="message-content">Hello! I'm your AI Synthesis Engine using gemma4:e4b 🚀
+
+I can automatically build complete web applications! Just describe what you want:
+
+Examples:
+• "Build a sudoku game"
+• "Create a calculator"
+• "Make a tic-tac-toe game"
+• "Build a stopwatch"
+
+The synthesis process takes 10-30 seconds. Please be patient!</div>
+        </div>
+    </div>
+
+    <!-- App Store Modal -->
+    <div class="modal" id="appStoreModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📦 App Store</h2>
+                <button class="close-btn" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="app-grid" id="appGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="input-container">
+        <div class="input-wrapper">
+            <textarea id="messageInput" placeholder="Send a message..." rows="1"></textarea>
+            <button id="sendButton">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M7 11L12 6L17 11M12 18V7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "whatwg-fetch": "https://cdn.jsdelivr.net/npm/whatwg-fetch@3.6.20/+esm",
+            "ollama": "/node_modules/ollama/dist/browser.mjs"
+        }
+    }
+    </script>
+    <script type="module">
+        import ollama from 'ollama';
+
+        const chatContainer = document.getElementById('chatContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+
+        const conversationHistory = [];
+
+        // Browser storage tools
+        const tools = [
+            {
+                type: "function",
+                function: {
+                    name: "get_local_storage",
+                    description: "Get a value from localStorage by key",
+                    parameters: {
+                        type: "object",
+                        required: ["key"],
+                        properties: {
+                            key: { type: "string", description: "The localStorage key to retrieve" }
+                        }
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "set_local_storage",
+                    description: "Set a value in localStorage",
+                    parameters: {
+                        type: "object",
+                        required: ["key", "value"],
+                        properties: {
+                            key: { type: "string", description: "The localStorage key" },
+                            value: { type: "string", description: "The value to store" }
+                        }
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "remove_local_storage",
+                    description: "Remove a key from localStorage",
+                    parameters: {
+                        type: "object",
+                        required: ["key"],
+                        properties: {
+                            key: { type: "string", description: "The localStorage key to remove" }
+                        }
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "list_local_storage",
+                    description: "List all keys and values in localStorage",
+                    parameters: {
+                        type: "object",
+                        properties: {}
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "get_session_storage",
+                    description: "Get a value from sessionStorage by key",
+                    parameters: {
+                        type: "object",
+                        required: ["key"],
+                        properties: {
+                            key: { type: "string", description: "The sessionStorage key to retrieve" }
+                        }
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "set_session_storage",
+                    description: "Set a value in sessionStorage",
+                    parameters: {
+                        type: "object",
+                        required: ["key", "value"],
+                        properties: {
+                            key: { type: "string", description: "The sessionStorage key" },
+                            value: { type: "string", description: "The value to store" }
+                        }
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "list_session_storage",
+                    description: "List all keys and values in sessionStorage",
+                    parameters: {
+                        type: "object",
+                        properties: {}
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "get_cookies",
+                    description: "Get all cookies for the current domain",
+                    parameters: {
+                        type: "object",
+                        properties: {}
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "set_cookie",
+                    description: "Set a cookie",
+                    parameters: {
+                        type: "object",
+                        required: ["name", "value"],
+                        properties: {
+                            name: { type: "string", description: "Cookie name" },
+                            value: { type: "string", description: "Cookie value" },
+                            days: { type: "number", description: "Days until expiration (optional)" }
+                        }
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "clear_storage",
+                    description: "Clear all storage (localStorage, sessionStorage, and cookies)",
+                    parameters: {
+                        type: "object",
+                        properties: {}
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "synthesize_app",
+                    description: "Automatically synthesize and create a complete HTML/JS/CSS application based on user's request. This tool will generate all the code automatically without requiring the user to provide HTML/CSS/JS. Use this when the user asks to build/create any app, game, tool, or web application.",
+                    parameters: {
+                        type: "object",
+                        required: ["app_description"],
+                        properties: {
+                            app_description: {
+                                type: "string",
+                                description: "Detailed description of what app to build (e.g., 'a sudoku game with 9x9 grid, number validation, and solve button')"
+                            },
+                            app_type: {
+                                type: "string",
+                                description: "Type of app (e.g., 'game', 'tool', 'utility', 'calculator', etc.)"
+                            },
+                            features: {
+                                type: "string",
+                                description: "Comma-separated list of features to include (e.g., 'dark theme, responsive design, animations')"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "modify_app_via_synthesis",
+                    description: "Automatically modify an existing app based on user's modification request. The synthesis engine will regenerate the necessary parts automatically.",
+                    parameters: {
+                        type: "object",
+                        required: ["app_id", "modification_request"],
+                        properties: {
+                            app_id: { type: "string", description: "The app ID to modify" },
+                            modification_request: {
+                                type: "string",
+                                description: "What changes to make (e.g., 'add dark theme', 'make it responsive', 'add sound effects')"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "delete_app",
+                    description: "Delete an application from the app store",
+                    parameters: {
+                        type: "object",
+                        required: ["app_id"],
+                        properties: {
+                            app_id: { type: "string", description: "The app ID to delete" }
+                        }
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "list_apps",
+                    description: "List all applications in the app store",
+                    parameters: {
+                        type: "object",
+                        properties: {}
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "get_app",
+                    description: "Get details of a specific application",
+                    parameters: {
+                        type: "object",
+                        required: ["app_id"],
+                        properties: {
+                            app_id: { type: "string", description: "The app ID to retrieve" }
+                        }
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "launch_app",
+                    description: "Launch/open an application in a new window or iframe",
+                    parameters: {
+                        type: "object",
+                        required: ["app_id"],
+                        properties: {
+                            app_id: { type: "string", description: "The app ID to launch" }
+                        }
+                    }
+                }
+            }
+        ];
+
+        // App Store Management
+        function getAppStore() {
+            const store = localStorage.getItem('app_store');
+            return store ? JSON.parse(store) : {};
+        }
+
+        function saveAppStore(store) {
+            localStorage.setItem('app_store', JSON.stringify(store));
+        }
+
+        function updateAppList() {
+            const appStore = getAppStore();
+            const appCount = Object.keys(appStore).length;
+            const headerSubtitle = document.getElementById('header-subtitle');
+            if (headerSubtitle) {
+                headerSubtitle.textContent = `${appCount} app${appCount !== 1 ? 's' : ''} generated`;
+            }
+        }
+
+        // Synthesis Engine - Automatically generates app code in batches
+        async function synthesizeApp(description, appType, features, progressCallback) {
+            console.log('Starting batched synthesis for:', description);
+
+            const timestamp = Date.now();
+            const appId = `app-${timestamp}`;
+
+            // Step 1: Generate app metadata and HTML
+            if (progressCallback) progressCallback('metadata', 'active');
+
+            const metadataPrompt = `Generate metadata and HTML structure for: ${description}
+
+Return ONLY this format:
+APP_ID: [kebab-case-id]
+APP_NAME: [Short Name]
+APP_DESCRIPTION: [One sentence]
+
+HTML:
+\`\`\`html
+[Complete body content - NO doctype/html/head/body tags, pure HTML elements only]
+\`\`\``;
+
+            let metadataContent = '';
+            const metadataStream = await ollama.chat({
+                model: 'gemma4:e4b',
+                messages: [{ role: 'user', content: metadataPrompt }],
+                stream: true,
+                options: { temperature: 0.3, num_predict: 800 }
+            });
+
+            for await (const chunk of metadataStream) {
+                if (chunk.message?.content) metadataContent += chunk.message.content;
+            }
+
+            const appIdMatch = metadataContent.match(/APP_ID:\s*(.+)/i);
+            const appNameMatch = metadataContent.match(/APP_NAME:\s*(.+)/i);
+            const appDescMatch = metadataContent.match(/APP_DESCRIPTION:\s*(.+)/i);
+            let htmlMatch = metadataContent.match(/HTML:\s*```html\s*([\s\S]*?)```/i);
+            if (!htmlMatch) htmlMatch = metadataContent.match(/```html\s*([\s\S]*?)```/i);
+
+            const finalAppId = appIdMatch ? appIdMatch[1].trim() : appId;
+            const appName = appNameMatch ? appNameMatch[1].trim() : `Generated App`;
+            const appDesc = appDescMatch ? appDescMatch[1].trim() : description;
+            const html = htmlMatch ? htmlMatch[1].trim() : '<div>Loading...</div>';
+
+            if (progressCallback) progressCallback('metadata', 'complete');
+
+            // Step 2: Generate CSS
+            if (progressCallback) progressCallback('css', 'active');
+
+            const cssPrompt = `Generate modern, responsive CSS styles for this app:
+App: ${description}
+HTML Structure: ${html.substring(0, 200)}...
+
+Return ONLY:
+\`\`\`css
+[Complete CSS with modern design, colors, responsive layout]
+\`\`\``;
+
+            // Parse the response with better error handling
+            const appIdMatch = content.match(/APP_ID:\s*(.+)/i);
+            const appNameMatch = content.match(/APP_NAME:\s*(.+)/i);
+            const appDescMatch = content.match(/APP_DESCRIPTION:\s*(.+)/i);
+
+            // Try multiple patterns for code blocks
+            let htmlMatch = content.match(/HTML:\s*```html\s*([\s\S]*?)```/i);
+            if (!htmlMatch) htmlMatch = content.match(/```html\s*([\s\S]*?)```/i);
+
+            let cssMatch = content.match(/CSS:\s*```css\s*([\s\S]*?)```/i);
+            if (!cssMatch) cssMatch = content.match(/```css\s*([\s\S]*?)```/i);
+
+            let jsMatch = content.match(/JAVASCRIPT:\s*```javascript\s*([\s\S]*?)```/i);
+            if (!jsMatch) jsMatch = content.match(/```javascript\s*([\s\S]*?)```/i);
+            if (!jsMatch) jsMatch = content.match(/```js\s*([\s\S]*?)```/i);
+
+            // Validate required fields
+            if (!appIdMatch || !appNameMatch) {
+                // Generate defaults if missing
+                const timestamp = Date.now();
+                const appId = appIdMatch ? appIdMatch[1].trim() : `app-${timestamp}`;
+                const appName = appNameMatch ? appNameMatch[1].trim() : `Generated App ${timestamp}`;
+                const appDesc = appDescMatch ? appDescMatch[1].trim() : description;
+                const html = htmlMatch ? htmlMatch[1].trim() : '<div>App generation incomplete</div>';
+                const css = cssMatch ? cssMatch[1].trim() : 'body { font-family: Arial, sans-serif; }';
+                const javascript = jsMatch ? jsMatch[1].trim() : '// No JavaScript generated';
+
+                if (!htmlMatch || !cssMatch) {
+                    throw new Error('Failed to generate app code. The AI response was incomplete. Please try again with more specific requirements.');
+                }
+
+                return { appId, appName, appDesc, html, css, javascript };
+            }
+
+            const appId = appIdMatch[1].trim();
+            const appName = appNameMatch[1].trim();
+            const appDesc = appDescMatch ? appDescMatch[1].trim() : description;
+            const html = htmlMatch ? htmlMatch[1].trim() : '<div>No HTML generated</div>';
+            const css = cssMatch ? cssMatch[1].trim() : '';
+            const javascript = jsMatch ? jsMatch[1].trim() : '';
+
+            // Store the generated app
+            const appStore = getAppStore();
+            appStore[appId] = {
+                id: appId,
+                name: appName,
+                description: appDesc,
+                html: html,
+                css: css,
+                javascript: javascript,
+                created: new Date().toISOString(),
+                modified: new Date().toISOString()
+            };
+            saveAppStore(appStore);
+            updateAppList();
+
+            return {
+                success: true,
+                appId: appId,
+                appName: appName,
+                message: `Successfully synthesized and created app: ${appName}`
+            };
+        }
+
+        // Modify app via synthesis
+        async function modifyAppViaSynthesis(appId, modificationRequest) {
+            const appStore = getAppStore();
+            if (!appStore[appId]) {
+                throw new Error(`App not found: ${appId}`);
+            }
+
+            const app = appStore[appId];
+
+            const prompt = `You have an existing web application that needs to be modified.
+
+Current App:
+Name: ${app.name}
+Description: ${app.description}
+
+Current HTML:
+\`\`\`html
+${app.html}
+\`\`\`
+
+Current CSS:
+\`\`\`css
+${app.css}
+\`\`\`
+
+Current JavaScript:
+\`\`\`javascript
+${app.javascript}
+\`\`\`
+
+Modification Request: ${modificationRequest}
+
+Please modify the app according to the request and provide the COMPLETE updated code in this EXACT format:
+
+HTML:
+\`\`\`html
+[complete updated HTML body content]
+\`\`\`
+
+CSS:
+\`\`\`css
+[complete updated CSS styles]
+\`\`\`
+
+JAVASCRIPT:
+\`\`\`javascript
+[complete updated JavaScript code]
+\`\`\``;
+
+            const response = await ollama.chat({
+                model: 'gemma4:e4b',
+                messages: [{ role: 'user', content: prompt }],
+                stream: false,
+                options: {
+                    temperature: 0.3,
+                    num_predict: 2000
+                }
+            });
+
+            const content = response.message.content;
+
+            const htmlMatch = content.match(/HTML:\s*```html\s*([\s\S]*?)```/);
+            const cssMatch = content.match(/CSS:\s*```css\s*([\s\S]*?)```/);
+            const jsMatch = content.match(/JAVASCRIPT:\s*```javascript\s*([\s\S]*?)```/);
+
+            if (!htmlMatch || !cssMatch || !jsMatch) {
+                throw new Error('Failed to parse modified app code. Please try again.');
+            }
+
+            app.html = htmlMatch[1].trim();
+            app.css = cssMatch[1].trim();
+            app.javascript = jsMatch[1].trim();
+            app.modified = new Date().toISOString();
+
+            saveAppStore(appStore);
+
+            return {
+                success: true,
+                appId: appId,
+                appName: app.name,
+                message: `Successfully modified app: ${app.name}`
+            };
+        }
+
+        // Tool execution functions
+        async function executeToolCall(toolCall) {
+            const functionName = toolCall.function.name;
+            const args = toolCall.function.arguments;
+
+            switch(functionName) {
+                case 'synthesize_app':
+                    try {
+                        // Find the progress div to update it
+                        const progressDivs = document.querySelectorAll('.synthesis-progress');
+                        const currentProgressDiv = progressDivs[progressDivs.length - 1];
+
+                        if (currentProgressDiv) {
+                            const statusSpan = currentProgressDiv.querySelector('.status span:last-child');
+                            if (statusSpan) {
+                                statusSpan.textContent = `Generating ${args.app_description}...`;
+                            }
+                        }
+
+                        const result = await synthesizeApp(
+                            args.app_description,
+                            args.app_type,
+                            args.features
+                        );
+                        return `${result.message}\nApp ID: ${result.appId}\n\nThe app has been created and is ready to launch from the App Store!`;
+                    } catch (error) {
+                        return `Error synthesizing app: ${error.message}`;
+                    }
+                case 'modify_app_via_synthesis':
+                    try {
+                        const modResult = await modifyAppViaSynthesis(
+                            args.app_id,
+                            args.modification_request
+                        );
+                        return `${modResult.message}\n\nThe app has been updated in the App Store!`;
+                    } catch (error) {
+                        return `Error modifying app: ${error.message}`;
+                    }
+
+                case 'get_local_storage':
+                    return localStorage.getItem(args.key);
+
+                case 'set_local_storage':
+                    localStorage.setItem(args.key, args.value);
+                    return `Successfully set ${args.key} in localStorage`;
+
+                case 'remove_local_storage':
+                    localStorage.removeItem(args.key);
+                    return `Successfully removed ${args.key} from localStorage`;
+
+                case 'list_local_storage':
+                    const localItems = {};
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        localItems[key] = localStorage.getItem(key);
+                    }
+                    return JSON.stringify(localItems, null, 2);
+
+                case 'get_session_storage':
+                    return sessionStorage.getItem(args.key);
+
+                case 'set_session_storage':
+                    sessionStorage.setItem(args.key, args.value);
+                    return `Successfully set ${args.key} in sessionStorage`;
+
+                case 'list_session_storage':
+                    const sessionItems = {};
+                    for (let i = 0; i < sessionStorage.length; i++) {
+                        const key = sessionStorage.key(i);
+                        sessionItems[key] = sessionStorage.getItem(key);
+                    }
+                    return JSON.stringify(sessionItems, null, 2);
+
+                case 'get_cookies':
+                    const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+                        const [name, value] = cookie.trim().split('=');
+                        if (name) acc[name] = decodeURIComponent(value);
+                        return acc;
+                    }, {});
+                    return JSON.stringify(cookies, null, 2);
+
+                case 'set_cookie':
+                    let cookieString = `${args.name}=${encodeURIComponent(args.value)}`;
+                    if (args.days) {
+                        const date = new Date();
+                        date.setTime(date.getTime() + (args.days * 24 * 60 * 60 * 1000));
+                        cookieString += `; expires=${date.toUTCString()}`;
+                    }
+                    cookieString += '; path=/';
+                    document.cookie = cookieString;
+                    return `Successfully set cookie ${args.name}`;
+
+                case 'clear_storage':
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    document.cookie.split(';').forEach(cookie => {
+                        const name = cookie.split('=')[0].trim();
+                        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+                    });
+                    return 'Successfully cleared all storage';
+
+                case 'create_app':
+                    const appStore = getAppStore();
+                    appStore[args.app_id] = {
+                        id: args.app_id,
+                        name: args.name,
+                        description: args.description || '',
+                        html: args.html,
+                        css: args.css,
+                        javascript: args.javascript,
+                        created: new Date().toISOString(),
+                        modified: new Date().toISOString()
+                    };
+                    saveAppStore(appStore);
+                    updateAppList();
+                    return `Successfully created app: ${args.name} (ID: ${args.app_id})`;
+
+                case 'modify_app':
+                    const store = getAppStore();
+                    if (!store[args.app_id]) {
+                        return `App not found: ${args.app_id}`;
+                    }
+                    if (args.html) store[args.app_id].html = args.html;
+                    if (args.css) store[args.app_id].css = args.css;
+                    if (args.javascript) store[args.app_id].javascript = args.javascript;
+                    store[args.app_id].modified = new Date().toISOString();
+                    saveAppStore(store);
+                    return `Successfully modified app: ${args.app_id}`;
+
+                case 'delete_app':
+                    const delStore = getAppStore();
+                    if (!delStore[args.app_id]) {
+                        return `App not found: ${args.app_id}`;
+                    }
+                    const appName = delStore[args.app_id].name;
+                    delete delStore[args.app_id];
+                    saveAppStore(delStore);
+                    updateAppList();
+                    return `Successfully deleted app: ${appName}`;
+
+                case 'list_apps':
+                    const listStore = getAppStore();
+                    const appList = Object.values(listStore).map(app => ({
+                        id: app.id,
+                        name: app.name,
+                        description: app.description,
+                        created: app.created,
+                        modified: app.modified
+                    }));
+                    return JSON.stringify(appList, null, 2);
+
+                case 'get_app':
+                    const getStore = getAppStore();
+                    if (!getStore[args.app_id]) {
+                        return `App not found: ${args.app_id}`;
+                    }
+                    return JSON.stringify(getStore[args.app_id], null, 2);
+
+                case 'launch_app':
+                    const launchStore = getAppStore();
+                    if (!launchStore[args.app_id]) {
+                        return `App not found: ${args.app_id}`;
+                    }
+                    const app = launchStore[args.app_id];
+                    const appWindow = window.open('', '_blank');
+                    appWindow.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                            <title>${app.name}</title>
+                            <style>${app.css}</style>
+                        </head>
+                        <body>
+                            ${app.html}
+                            <script>${app.javascript}<\/script>
+                        </body>
+                        </html>
+                    `);
+                    appWindow.document.close();
+                    return `Successfully launched app: ${app.name}`;
+
+                default:
+                    return `Unknown function: ${functionName}`;
+            }
+        }
+
+        // App Store UI
+        const appStoreBtn = document.getElementById('appStoreBtn');
+        const appStoreModal = document.getElementById('appStoreModal');
+        const closeModal = document.getElementById('closeModal');
+        const appGrid = document.getElementById('appGrid');
+
+        function renderAppStore() {
+            const appStore = getAppStore();
+            const apps = Object.values(appStore);
+
+            if (apps.length === 0) {
+                appGrid.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No Apps Yet</h3>
+                        <p>Ask the AI to build an app for you!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            appGrid.innerHTML = apps.map(app => `
+                <div class="app-card">
+                    <h3>${app.name}</h3>
+                    <p>${app.description || 'No description'}</p>
+                    <div class="app-card-footer">
+                        <button class="app-btn launch-btn" onclick="launchAppFromStore('${app.id}')">
+                            🚀 Launch
+                        </button>
+                        <button class="app-btn delete-btn" onclick="deleteAppFromStore('${app.id}')">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.launchAppFromStore = function(appId) {
+            executeToolCall({ function: { name: 'launch_app', arguments: { app_id: appId } } });
+        };
+
+        window.deleteAppFromStore = function(appId) {
+            if (confirm('Are you sure you want to delete this app?')) {
+                executeToolCall({ function: { name: 'delete_app', arguments: { app_id: appId } } });
+                renderAppStore();
+            }
+        };
+
+        appStoreBtn.addEventListener('click', () => {
+            renderAppStore();
+            appStoreModal.classList.add('active');
+        });
+
+        closeModal.addEventListener('click', () => {
+            appStoreModal.classList.remove('active');
+        });
+
+        appStoreModal.addEventListener('click', (e) => {
+            if (e.target === appStoreModal) {
+                appStoreModal.classList.remove('active');
+            }
+        });
+
+        // Initialize app count
+        updateAppList();
+
+        // Auto-resize textarea
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+        });
+
+        // Send message on Enter (Shift+Enter for new line)
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        sendButton.addEventListener('click', sendMessage);
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Add user message
+            addMessage(message, 'user');
+            conversationHistory.push({ role: 'user', content: message });
+
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+            sendButton.disabled = true;
+
+            // Add loading message
+            const loadingDiv = addMessage('', 'assistant', true);
+
+            try {
+                const stream = await ollama.chat({
+                    model: 'gemma4:e4b',  // Faster model
+                    messages: conversationHistory,
+                    tools: tools,
+                    stream: true,
+                });
+
+                let inThinking = false;
+                let content = '';
+                let thinking = '';
+
+                // Remove loading indicator
+                loadingDiv.remove();
+                const assistantDiv = addMessage('', 'assistant');
+                const contentDiv = assistantDiv.querySelector('.message-content');
+
+                let toolCalls = [];
+
+                let thinkingContentDiv = null;
+                let answerContentDiv = null;
+
+                for await (const chunk of stream) {
+                    if (chunk.message.thinking) {
+                        if (!inThinking) {
+                            inThinking = true;
+                            // Add thinking section
+                            const thinkingDiv = document.createElement('div');
+                            thinkingDiv.className = 'thinking';
+                            const thinkingLabel = document.createElement('div');
+                            thinkingLabel.className = 'thinking-label';
+                            thinkingLabel.textContent = '💭 Thinking:';
+                            thinkingDiv.appendChild(thinkingLabel);
+                            thinkingContentDiv = document.createElement('div');
+                            thinkingContentDiv.className = 'thinking-content';
+                            thinkingDiv.appendChild(thinkingContentDiv);
+                            contentDiv.appendChild(thinkingDiv);
+                        }
+                        // Accumulate and display thinking
+                        thinking += chunk.message.thinking;
+                        if (thinkingContentDiv) {
+                            thinkingContentDiv.textContent = thinking;
+                        }
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                    } else if (chunk.message.content) {
+                        if (inThinking) {
+                            inThinking = false;
+                            // Add answer label
+                            const answerLabel = document.createElement('div');
+                            answerLabel.className = 'answer-label';
+                            answerLabel.textContent = '💬 Answer:';
+                            contentDiv.appendChild(answerLabel);
+
+                            // Add answer content container
+                            answerContentDiv = document.createElement('div');
+                            answerContentDiv.className = 'answer-content';
+                            contentDiv.appendChild(answerContentDiv);
+                        }
+                        // Accumulate and display content
+                        content += chunk.message.content;
+                        if (answerContentDiv) {
+                            answerContentDiv.textContent = content;
+                        } else {
+                            // If no thinking, just show content directly
+                            contentDiv.textContent = content;
+                        }
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                    } else if (chunk.message.tool_calls) {
+                        toolCalls = chunk.message.tool_calls;
+                    }
+                }
+
+                // Handle tool calls if any
+                if (toolCalls && toolCalls.length > 0) {
+                    // Add assistant message with tool calls to history
+                    conversationHistory.push({
+                        role: 'assistant',
+                        thinking: thinking,
+                        content: content,
+                        tool_calls: toolCalls
+                    });
+
+                    // Show tool execution
+                    const toolDiv = document.createElement('div');
+                    toolDiv.className = 'thinking';
+                    toolDiv.innerHTML = '<div class="thinking-label">🔧 Executing tools...</div>';
+                    contentDiv.appendChild(toolDiv);
+
+                    // Execute all tool calls
+                    for (const toolCall of toolCalls) {
+                        // Show synthesis progress for synthesis tools
+                        if (toolCall.function.name === 'synthesize_app' || toolCall.function.name === 'modify_app_via_synthesis') {
+                            const progressDiv = document.createElement('div');
+                            progressDiv.className = 'synthesis-progress';
+                            progressDiv.innerHTML = `
+                                <div class="status">
+                                    <span class="spinner">⚙️</span>
+                                    <span>Synthesizing application code...</span>
+                                </div>
+                            `;
+                            toolDiv.appendChild(progressDiv);
+                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                        }
+
+                        const result = await executeToolCall(toolCall);
+
+                        // Add tool result to conversation
+                        conversationHistory.push({
+                            role: 'tool',
+                            content: result
+                        });
+
+                        // Display tool result
+                        const toolResultDiv = document.createElement('div');
+                        toolResultDiv.style.marginTop = '0.5rem';
+                        toolResultDiv.innerHTML = `<strong>${toolCall.function.name}:</strong> ${result}`;
+                        toolDiv.appendChild(toolResultDiv);
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                    }
+
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+
+                    // Get final response after tool execution
+                    const finalStream = await ollama.chat({
+                        model: 'gemma4:e4b',
+                        messages: conversationHistory,
+                        tools: tools,
+                        stream: true,
+                    });
+
+                    let finalContent = '';
+                    const finalDiv = addMessage('', 'assistant');
+                    const finalContentDiv = finalDiv.querySelector('.message-content');
+
+                    for await (const chunk of finalStream) {
+                        if (chunk.message.content) {
+                            finalContent += chunk.message.content;
+                            finalContentDiv.textContent = finalContent;
+                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                        }
+                    }
+
+                    conversationHistory.push({
+                        role: 'assistant',
+                        content: finalContent
+                    });
+                } else {
+                    // No tool calls, just add the normal message
+                    conversationHistory.push({
+                        role: 'assistant',
+                        thinking: thinking,
+                        content: content
+                    });
+                }
+
+            } catch (error) {
+                loadingDiv.remove();
+                addMessage('Error: ' + error.message + '\nMake sure Ollama is running on http://localhost:11434', 'assistant');
+                console.error('Error:', error);
+            }
+
+            sendButton.disabled = false;
+            messageInput.focus();
+        }
+
+        function addMessage(content, role, isLoading = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+
+            const iconDiv = document.createElement('div');
+            iconDiv.className = 'message-icon';
+            iconDiv.textContent = role === 'user' ? 'U' : 'AI';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+
+            if (isLoading) {
+                contentDiv.innerHTML = '<span class="loading"></span>';
+            } else {
+                contentDiv.textContent = content;
+            }
+
+            messageDiv.appendChild(iconDiv);
+            messageDiv.appendChild(contentDiv);
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            return messageDiv;
+        }
+    </script>
+</body>
+</html>
